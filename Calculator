@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Rotary Calculator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1c1c1e;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            color: #00aaff;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background-color: #28282b;
+            border-radius: 10px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .dial-section {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .dial {
+            width: 120px;
+            height: 150px;
+            overflow: hidden;
+            border: 5px solid #00aaff;
+            border-radius: 10px;
+            background-color: #1c1c1e;
+            position: relative;
+        }
+
+        .dial ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            overflow-y: scroll;
+            scrollbar-width: none;
+        }
+
+        .dial ul::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dial ul li {
+            font-size: 1.5rem;
+            text-align: center;
+            height: 50px;
+            line-height: 50px;
+            color: #fff;
+        }
+
+        .dial ul li.active {
+            color: #00aaff;
+            font-weight: bold;
+        }
+
+        .dial-label {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 1rem;
+            color: #ccc;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .results-table {
+            width: 100%;
+            margin-top: 20px;
+            text-align: left;
+            border-collapse: collapse;
+        }
+
+        .results-table th, .results-table td {
+            padding: 10px;
+            border: 1px solid #404042;
+        }
+
+        .results-table th {
+            background-color: #00aaff;
+            color: #fff;
+        }
+
+        .results-table td {
+            background-color: #202022;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Rotary Calculator</h1>
+    <div class="container">
+        <!-- Rotary Input Dials -->
+        <div class="dial-section">
+            <div class="dial">
+                <ul id="evDial"></ul>
+            </div>
+            <div class="dial">
+                <ul id="isoDial"></ul>
+            </div>
+            <div class="dial">
+                <ul id="zoneDial"></ul>
+            </div>
+        </div>
+        <div class="dial-section">
+            <div class="dial-label">EV</div>
+            <div class="dial-label">ISO</div>
+            <div class="dial-label">Zone</div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="results">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Aperture</th>
+                        <th>Shutter Speed</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- Rows will be dynamically updated -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Populate dials
+        const evDial = document.getElementById('evDial');
+        const isoDial = document.getElementById('isoDial');
+        const zoneDial = document.getElementById('zoneDial');
+        const resultsBody = document.getElementById('resultsBody');
+
+        for (let i = 0; i <= 20; i++) evDial.innerHTML += `<li>${i}</li>`;
+        [100, 200, 400, 800, 1600].forEach(iso => isoDial.innerHTML += `<li>${iso}</li>`);
+        for (let i = 0; i <= 10; i++) zoneDial.innerHTML += `<li>${i}</li>`;
+
+        // Standard aperture values
+        const apertures = [1, 1.4, 1.8, 2, 2.8, 4, 5.6, 8, 11, 16, 22, 32, 45, 64, 90, 128];
+
+        const getActiveValue = (dial) => {
+            const scrollTop = dial.scrollTop;
+            const index = Math.round(scrollTop / 50);
+            return dial.querySelectorAll('li')[index]?.textContent || 0;
+        };
+
+        const formatShutterSpeed = (speed) => {
+            if (speed >= 1) {
+                return `${Math.round(speed)}s`; // Speeds >= 1 second
+            } else if (speed > 0) {
+                const denominator = Math.round(1 / speed);
+                return `1/${denominator}`; // Speeds < 1 second
+            } else {
+                return "N/A"; // Handle edge cases
+            }
+        };
+
+        const updateCalculations = () => {
+            const ev = parseInt(getActiveValue(evDial));
+            const iso = parseInt(getActiveValue(isoDial));
+            const zone = parseInt(getActiveValue(zoneDial));
+
+            // Adjust EV for ISO
+            const adjustedEV = ev + Math.log2(iso / 100);
+
+            // Adjust EV for desired zone
+            const baseEV = adjustedEV + (5 - zone);
+
+            // Calculate inverted shutter speed for fast speeds
+            resultsBody.innerHTML = '';
+            apertures.forEach(aperture => {
+                const shutterSpeed = (aperture ** 2) / (2 ** baseEV);
+                const formattedSpeed = formatShutterSpeed(shutterSpeed);
+                resultsBody.innerHTML += `
+                    <tr>
+                        <td>f/${aperture.toFixed(1)}</td>
+                        <td>${formattedSpeed}</td>
+                    </tr>
+                `;
+            });
+        };
+
+        // Highlight active values
+        const highlightActive = () => {
+            [evDial, isoDial, zoneDial].forEach(dial => {
+                const index = Math.round(dial.scrollTop / 50);
+                dial.querySelectorAll('li').forEach((li, i) => {
+                    li.classList.toggle('active', i === index);
+                });
+            });
+        };
+
+        // Add scroll listeners
+        evDial.addEventListener('scroll', () => {
+            updateCalculations();
+            highlightActive();
+        });
+        isoDial.addEventListener('scroll', () => {
+            updateCalculations();
+            highlightActive();
+        });
+        zoneDial.addEventListener('scroll', () => {
+            updateCalculations();
+            highlightActive();
+        });
+    </script>
+</body>
+</html>
