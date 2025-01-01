@@ -142,7 +142,7 @@
     </div>
 
     <script>
-        // Populate dials with duplicate values for continuous scrolling
+// Populate dials with duplicate values for continuous scrolling
 const populateDial = (dial, values) => {
     const totalValues = [...values, ...values, ...values]; // Triple the list for smoother looping
     totalValues.forEach(value => {
@@ -155,7 +155,16 @@ const populateDial = (dial, values) => {
 const getActiveValue = (dial, values) => {
     const scrollTop = dial.scrollTop;
     const index = Math.round(scrollTop / 50) % values.length; // Handle wrapping
-    return values[(index + values.length) % values.length]; // Ensure positive index
+    return { value: values[(index + values.length) % values.length], index };
+};
+
+// Highlight the active value
+const highlightActive = (dial, values) => {
+    const items = dial.querySelectorAll('li');
+    const { index } = getActiveValue(dial, values);
+    items.forEach((item, i) => {
+        item.classList.toggle('active', i % values.length === index);
+    });
 };
 
 // Handle continuous scrolling
@@ -173,21 +182,28 @@ const evValues = Array.from({ length: 21 }, (_, i) => i); // 0-20
 const isoValues = [100, 200, 400, 800, 1600];
 const zoneValues = Array.from({ length: 11 }, (_, i) => i); // 0-10
 
-populateDial(document.getElementById('evDial'), evValues);
-populateDial(document.getElementById('isoDial'), isoValues);
-populateDial(document.getElementById('zoneDial'), zoneValues);
+const evDial = document.getElementById('evDial');
+const isoDial = document.getElementById('isoDial');
+const zoneDial = document.getElementById('zoneDial');
+populateDial(evDial, evValues);
+populateDial(isoDial, isoValues);
+populateDial(zoneDial, zoneValues);
 
 // Update calculations
 const updateCalculations = () => {
-    const evDial = document.getElementById('evDial');
-    const isoDial = document.getElementById('isoDial');
-    const zoneDial = document.getElementById('zoneDial');
     const resultsBody = document.getElementById('resultsBody');
 
-    const ev = getActiveValue(evDial, evValues);
-    const iso = getActiveValue(isoDial, isoValues);
-    const zone = getActiveValue(zoneDial, zoneValues);
+    // Highlight active items
+    highlightActive(evDial, evValues);
+    highlightActive(isoDial, isoValues);
+    highlightActive(zoneDial, zoneValues);
 
+    // Get active values
+    const { value: ev } = getActiveValue(evDial, evValues);
+    const { value: iso } = getActiveValue(isoDial, isoValues);
+    const { value: zone } = getActiveValue(zoneDial, zoneValues);
+
+    // Perform calculations
     const adjustedEV = ev + Math.log2(iso / 100);
     const baseEV = adjustedEV + (5 - zone);
 
@@ -206,16 +222,16 @@ const updateCalculations = () => {
 };
 
 // Add scroll listeners with wrapping logic
-document.getElementById('evDial').addEventListener('scroll', () => {
-    handleScroll(document.getElementById('evDial'), evValues);
+evDial.addEventListener('scroll', () => {
+    handleScroll(evDial, evValues);
     updateCalculations();
 });
-document.getElementById('isoDial').addEventListener('scroll', () => {
-    handleScroll(document.getElementById('isoDial'), isoValues);
+isoDial.addEventListener('scroll', () => {
+    handleScroll(isoDial, isoValues);
     updateCalculations();
 });
-document.getElementById('zoneDial').addEventListener('scroll', () => {
-    handleScroll(document.getElementById('zoneDial'), zoneValues);
+zoneDial.addEventListener('scroll', () => {
+    handleScroll(zoneDial, zoneValues);
     updateCalculations();
 });
     </script>
