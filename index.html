@@ -142,84 +142,54 @@
     </div>
 
     <script>
-        // Populate dials
-        const evDial = document.getElementById('evDial');
-        const isoDial = document.getElementById('isoDial');
-        const zoneDial = document.getElementById('zoneDial');
-        const resultsBody = document.getElementById('resultsBody');
+        // Populate dials with duplicate values for continuous scrolling
+const populateDial = (dial, values) => {
+    const totalValues = [...values, ...values]; // Duplicate the list for looping
+    totalValues.forEach(value => {
+        dial.innerHTML += `<li>${value}</li>`;
+    });
+    dial.scrollTop = values.length * 50; // Start in the middle
+};
 
-        for (let i = 0; i <= 20; i++) evDial.innerHTML += `<li>${i}</li>`;
-        [100, 200, 400, 800, 1600].forEach(iso => isoDial.innerHTML += `<li>${iso}</li>`);
-        for (let i = 0; i <= 10; i++) zoneDial.innerHTML += `<li>${i}</li>`;
+// Adjusted function to retrieve active value
+const getActiveValue = (dial, values) => {
+    const scrollTop = dial.scrollTop;
+    const index = Math.round(scrollTop / 50) % values.length; // Handle wrapping
+    return values[index];
+};
 
-        // Standard aperture values
-        const apertures = [1, 1.4, 1.8, 2, 2.8, 4, 5.6, 8, 11, 16, 22, 32, 45, 64, 90, 128];
+// Handle continuous scrolling
+const handleScroll = (dial, values) => {
+    const maxScroll = (values.length * 50 * 2) - dial.clientHeight; // Adjust for double list
+    if (dial.scrollTop <= 0) {
+        dial.scrollTop += values.length * 50; // Reset to middle
+    } else if (dial.scrollTop >= maxScroll) {
+        dial.scrollTop -= values.length * 50; // Reset to middle
+    }
+};
 
-        const getActiveValue = (dial) => {
-            const scrollTop = dial.scrollTop;
-            const index = Math.round(scrollTop / 50);
-            return dial.querySelectorAll('li')[index]?.textContent || 0;
-        };
+// Populate the dials with continuous values
+const evValues = Array.from({ length: 21 }, (_, i) => i); // 0-20
+const isoValues = [100, 200, 400, 800, 1600];
+const zoneValues = Array.from({ length: 11 }, (_, i) => i); // 0-10
 
-        const formatShutterSpeed = (speed) => {
-            if (speed >= 1) {
-                return `${Math.round(speed)}s`; // Speeds >= 1 second
-            } else if (speed > 0) {
-                const denominator = Math.round(1 / speed);
-                return `1/${denominator}`; // Speeds < 1 second
-            } else {
-                return "N/A"; // Handle edge cases
-            }
-        };
+populateDial(evDial, evValues);
+populateDial(isoDial, isoValues);
+populateDial(zoneDial, zoneValues);
 
-        const updateCalculations = () => {
-            const ev = parseInt(getActiveValue(evDial));
-            const iso = parseInt(getActiveValue(isoDial));
-            const zone = parseInt(getActiveValue(zoneDial));
-
-            // Adjust EV for ISO
-            const adjustedEV = ev + Math.log2(iso / 100);
-
-            // Adjust EV for desired zone
-            const baseEV = adjustedEV + (5 - zone);
-
-            // Calculate inverted shutter speed for fast speeds
-            resultsBody.innerHTML = '';
-            apertures.forEach(aperture => {
-                const shutterSpeed = (aperture ** 2) / (2 ** baseEV);
-                const formattedSpeed = formatShutterSpeed(shutterSpeed);
-                resultsBody.innerHTML += `
-                    <tr>
-                        <td>f/${aperture.toFixed(1)}</td>
-                        <td>${formattedSpeed}</td>
-                    </tr>
-                `;
-            });
-        };
-
-        // Highlight active values
-        const highlightActive = () => {
-            [evDial, isoDial, zoneDial].forEach(dial => {
-                const index = Math.round(dial.scrollTop / 50);
-                dial.querySelectorAll('li').forEach((li, i) => {
-                    li.classList.toggle('active', i === index);
-                });
-            });
-        };
-
-        // Add scroll listeners
-        evDial.addEventListener('scroll', () => {
-            updateCalculations();
-            highlightActive();
-        });
-        isoDial.addEventListener('scroll', () => {
-            updateCalculations();
-            highlightActive();
-        });
-        zoneDial.addEventListener('scroll', () => {
-            updateCalculations();
-            highlightActive();
-        });
+// Add scroll listeners with wrapping logic
+evDial.addEventListener('scroll', () => {
+    handleScroll(evDial, evValues);
+    updateCalculations();
+});
+isoDial.addEventListener('scroll', () => {
+    handleScroll(isoDial, isoValues);
+    updateCalculations();
+});
+zoneDial.addEventListener('scroll', () => {
+    handleScroll(zoneDial, zoneValues);
+    updateCalculations();
+});
     </script>
 </body>
 </html>
